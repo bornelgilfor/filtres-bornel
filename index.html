@@ -193,6 +193,7 @@ select { padding: 0 8px; cursor: pointer; min-width: 100px; }
         <input class="config-input" id="f-machine" placeholder="Machine (ex: MF1)">
         <input class="config-input" id="f-groupe" placeholder="Groupe (ex: Levée four)">
         <input class="config-input" type="number" id="f-stock" placeholder="Stock initial" min="0" value="1">
+        <input class="config-input" id="f-note" placeholder="Note (ex: double filtre, filtre retour…)">
         <div style="display:flex;gap:8px;margin-top:4px;">
           <button class="btn-primary" id="form-submit-btn" onclick="submitForm()">Ajouter</button>
           <button id="form-cancel-btn" onclick="cancelForm()" style="display:none;flex:1;height:40px;background:none;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;cursor:pointer;color:var(--text2);">Annuler</button>
@@ -411,6 +412,7 @@ function render() {
           </div>
           <span class="sector-pill">${f.secteur.split(' ')[0]}</span>
         </div>
+        ${f.note ? `<div style="margin-top:6px;font-size:11px;color:var(--warn);background:var(--warn-bg);border-radius:4px;padding:3px 7px;">ℹ️ ${f.note}</div>` : ''}
         <div class="card-bottom">
           <div class="stock-ctrl">
             <button class="btn-round" onclick="changeStock(${f.id},-1)" ${f.stock===0?'disabled':''}>−</button>
@@ -463,6 +465,7 @@ function renderManage() {
     <div style="border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:6px;background:var(--bg);">
       <div style="font-size:12px;font-weight:500;font-family:var(--mono);">${f.ref}</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px;">${f.secteur} · ${f.machine} · ${f.groupe}</div>
+      ${f.note ? `<div style="font-size:11px;color:var(--warn);margin-top:3px;">ℹ️ ${f.note}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button onclick="editFilter(${f.id})" style="flex:1;height:30px;border:1px solid var(--border);border-radius:6px;background:var(--surface);font-size:12px;cursor:pointer;color:var(--text);">✏️ Modifier</button>
         <button onclick="deleteFilter(${f.id})" style="flex:1;height:30px;border:1px solid var(--danger);border-radius:6px;background:var(--danger-bg);font-size:12px;cursor:pointer;color:var(--danger);">🗑 Supprimer</button>
@@ -479,6 +482,7 @@ function editFilter(id) {
   document.getElementById('f-machine').value = f.machine;
   document.getElementById('f-groupe').value = f.groupe;
   document.getElementById('f-stock').value = f.stock;
+  document.getElementById('f-note').value = f.note || '';
   document.getElementById('form-title').textContent = 'Modifier la référence';
   document.getElementById('form-submit-btn').textContent = 'Enregistrer';
   document.getElementById('form-cancel-btn').style.display = 'block';
@@ -492,6 +496,7 @@ function cancelForm() {
   document.getElementById('f-machine').value = '';
   document.getElementById('f-groupe').value = '';
   document.getElementById('f-stock').value = '1';
+  document.getElementById('f-note').value = '';
   document.getElementById('form-title').textContent = 'Ajouter une référence';
   document.getElementById('form-submit-btn').textContent = 'Ajouter';
   document.getElementById('form-cancel-btn').style.display = 'none';
@@ -503,17 +508,18 @@ function submitForm() {
   const machine = document.getElementById('f-machine').value.trim();
   const groupe = document.getElementById('f-groupe').value.trim();
   const stock = parseInt(document.getElementById('f-stock').value) || 0;
+  const note = document.getElementById('f-note').value.trim();
   if (!ref || !secteur || !machine || !groupe) {
     showToast('Tous les champs sont requis');
     return;
   }
   if (editingId !== null) {
     const f = data.find(x => x.id === editingId);
-    if (f) { f.ref = ref; f.secteur = secteur; f.machine = machine; f.groupe = groupe; f.stock = stock; }
+    if (f) { f.ref = ref; f.secteur = secteur; f.machine = machine; f.groupe = groupe; f.stock = stock; f.note = note; }
     showToast('Référence modifiée');
   } else {
     const newId = data.length > 0 ? Math.max(...data.map(f => f.id)) + 1 : 0;
-    data.push({ref, secteur, machine, groupe, stock, id: newId});
+    data.push({ref, secteur, machine, groupe, stock, note, id: newId});
     showToast('Référence ajoutée');
   }
   cancelForm();
