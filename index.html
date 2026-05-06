@@ -159,7 +159,7 @@ select { padding: 0 8px; cursor: pointer; min-width: 100px; }
         <input type="search" id="search" placeholder="Référence, machine, groupe…" oninput="render()">
       </div>
       <select id="sect-filter" onchange="render()">
-        <option value="">Tous</option>
+        <option value="">Toutes machines</option>
       </select>
     </div>
     <div class="list" id="filter-list"></div>
@@ -376,17 +376,17 @@ function changeStock(id, delta) {
 function render() {
   const search = (document.getElementById('search').value || '').toLowerCase();
   const sect = document.getElementById('sect-filter').value;
-  const sectors = [...new Set(data.map(f => f.secteur))].sort();
+  const machines = [...new Set(data.map(f => f.machine))].sort();
   const sel = document.getElementById('sect-filter');
   const cur = sel.value;
-  sel.innerHTML = '<option value="">Tous</option>' + sectors.map(s => `<option value="${s}"${s===cur?' selected':''}>${s.split(' ')[0]}</option>`).join('');
+  sel.innerHTML = '<option value="">Toutes machines</option>' + machines.map(m => `<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');
 
   document.getElementById('s-total').textContent = data.length;
   document.getElementById('s-zero').textContent = data.filter(f => f.stock === 0).length;
   document.getElementById('s-low').textContent = data.filter(f => f.stock === 1).length;
 
   const filtered = data.filter(f => {
-    const ms = !sect || f.secteur === sect;
+    const ms = !sect || f.machine === sect;
     const mq = !search || [f.ref, f.machine, f.groupe, f.secteur].some(v => v.toLowerCase().includes(search));
     return ms && mq;
   });
