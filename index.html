@@ -248,8 +248,7 @@ select { padding: 0 8px; cursor: pointer; min-width: 100px; }
     <input class="pin-input" type="password" inputmode="numeric" maxlength="4" id="pin-input" placeholder="····" onkeydown="if(event.key==='Enter')pinConfirm()">
     <div class="pin-error" id="pin-error"></div>
     <div class="pin-btns">
-      <button class="pin-cancel" onclick="pinCancel()">Annuler</button>
-      <button class="pin-ok" onclick="pinConfirm()">Valider</button>
+      <button class="pin-ok" onclick="pinConfirm()" style="flex:1">Valider</button>
     </div>
   </div>
 </div>
@@ -326,7 +325,7 @@ let data = [];
 let currentView = 'stock';
 
 function init() {
-  loadFromBin();
+  askPin('Entrez le code PIN pour accéder à l\'application', loadFromBin);
 }
 
 function setStatus(msg) {
@@ -392,6 +391,7 @@ async function syncNow() {
 
 const PIN = '2025';
 let pinCallback = null;
+let pinUnlocked = false;
 
 function askPin(label, callback) {
   pinCallback = callback;
@@ -405,6 +405,7 @@ function askPin(label, callback) {
 function pinConfirm() {
   const val = document.getElementById('pin-input').value;
   if (val === PIN) {
+    pinUnlocked = true;
     document.getElementById('pin-overlay').style.display = 'none';
     if (pinCallback) pinCallback();
     pinCallback = null;
@@ -416,8 +417,17 @@ function pinConfirm() {
 }
 
 function pinCancel() {
-  document.getElementById('pin-overlay').style.display = 'none';
-  pinCallback = null;
+  // Pas de fermeture sans PIN valide
+}
+
+function changeStock(id, delta) {
+  const f = data.find(x => x.id === id);
+  if (!f) return;
+  f.stock = Math.max(0, f.stock + delta);
+  render();
+  showToast(delta > 0 ? `+1 → stock : ${f.stock}` : `-1 → stock : ${f.stock}`);
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(saveToBin, 1500);
 }
 
 function changeStock(id, delta) {
@@ -571,36 +581,32 @@ function submitForm() {
     showToast('Tous les champs sont requis');
     return;
   }
-  askPin(editingId !== null ? 'Modifier cette référence' : 'Ajouter une référence', () => {
-    if (editingId !== null) {
-      const f = data.find(x => x.id === editingId);
-      if (f) { f.ref = ref; f.secteur = secteur; f.machine = machine; f.groupe = groupe; f.stock = stock; f.note = note; }
-      showToast('Référence modifiée');
-    } else {
-      const newId = data.length > 0 ? Math.max(...data.map(f => f.id)) + 1 : 0;
-      data.push({ref, secteur, machine, groupe, stock, note, id: newId});
-      showToast('Référence ajoutée');
-    }
-    cancelForm();
-    render();
-    renderManage();
-    clearTimeout(window._saveTimer);
-    window._saveTimer = setTimeout(saveToBin, 1500);
-  });
+  if (editingId !== null) {
+    const f = data.find(x => x.id === editingId);
+    if (f) { f.ref = ref; f.secteur = secteur; f.machine = machine; f.groupe = groupe; f.stock = stock; f.note = note; }
+    showToast('Référence modifiée');
+  } else {
+    const newId = data.length > 0 ? Math.max(...data.map(f => f.id)) + 1 : 0;
+    data.push({ref, secteur, machine, groupe, stock, note, id: newId});
+    showToast('Référence ajoutée');
+  }
+  cancelForm();
+  render();
+  renderManage();
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(saveToBin, 1500);
 }
 
 function deleteFilter(id) {
   const f = data.find(x => x.id === id);
   if (!f) return;
-  askPin('Supprimer cette référence', () => {
-    if (!confirm(`Supprimer "${f.ref}" ?`)) return;
-    data = data.filter(x => x.id !== id);
-    render();
-    renderManage();
-    showToast('Référence supprimée');
-    clearTimeout(window._saveTimer);
-    window._saveTimer = setTimeout(saveToBin, 1500);
-  });
+  if (!confirm(`Supprimer "${f.ref}" ?`)) return;
+  data = data.filter(x => x.id !== id);
+  render();
+  renderManage();
+  showToast('Référence supprimée');
+  clearTimeout(window._saveTimer);
+  window._saveTimer = setTimeout(saveToBin, 1500);
 }
 
 function showToast(msg) {
